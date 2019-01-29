@@ -105,23 +105,25 @@ export default {
   methods: {
     play() {
       if (!this.isPlay) {
-        this.timer = setInterval(this.update.bind(this), 1000 / this.fps)
+        this.timer = window.requestAnimationFrame(this.update.bind(this))
         this.setStart()
         this.isPlay = true
       }
     },
     pause() {
       if (this.isPlay) {
-        clearInterval(this.timer)
+        window.cancelAnimationFrame(this.timer)
         this.timer = null
         this.setStart()
         this.isPlay = false
       }
     },
-    update() {
-      var elapsedTime = new Date() - this.startTime // in ms
+    update(timestamp) {
+      if (!this.startTime) this.startTime = timestamp
+      var elapsedTime = timestamp - this.startTime // in ms
       var bpms = this.bpm / 60 / 1000 * 2
       this.currentBeatFraction = elapsedTime * bpms + this.startBeatFraction
+      this.timer = window.requestAnimationFrame(this.update.bind(this))
     },
     reset() {
       this.currentBeatFraction = 0
@@ -132,7 +134,7 @@ export default {
       this.setStart()
     },
     setStart() {
-      this.startTime = new Date()
+      this.startTime = null
       this.startBeatFraction = this.currentBeatFraction
     },
     playheadMouseMove(ev, beat) {
