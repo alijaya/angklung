@@ -311,7 +311,7 @@ export default {
 }
 
 .partitur .cell.current {
-  background-color: rgb(255, 183, 183);
+  background-color: rgb(196, 225, 255);
 }
 
 .partitur .notasi {
@@ -323,7 +323,7 @@ export default {
   position: absolute;
   width: 1px;
   height: 100%;
-  background-color: red;
+  background-color: #409EFF;
   top: 0;
 }
 
