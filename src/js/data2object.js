@@ -1,30 +1,52 @@
 import XLSX from 'xlsx'
-import * as Note from './Note'
+// import * as Note from './Note'
 
 export default function data2object(data) {
-  var workbook = XLSX.read(data, {type:'binary'})
+  const workbook = XLSX.read(data, {type:'binary'})
 
-  var worksheetname = workbook.SheetNames[0];
+  const worksheetname = workbook.SheetNames[0];
   
-  var worksheet = workbook.Sheets[worksheetname];
+  const worksheet = workbook.Sheets[worksheetname];
   
-  var f = {};
+  const f = {};
 
-  var offset = 0;
+  let offset = 0;
 
-  var range = XLSX.utils.decode_range(worksheet['!ref']);
+  const range = XLSX.utils.decode_range(worksheet['!ref']);
 
-  f.title = getValue(worksheet, offset, 1);
-  offset++;
-  f.base = getValue(worksheet, offset, 1);
-  offset++;
-  f.bpm = parseInt(getValue(worksheet, offset, 1));
-  offset++;
-  f.numChannel = parseInt(getValue(worksheet, offset, 1));
-  offset++;
+  f.title = 'Untitled';
+  f.base = 'C5';
+  f.bpm = 60;
+  f.transpose = 0;
+
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const parameter = getValue(worksheet, offset, 0);
+    switch (parameter) {
+      case 'Title':
+        f.title = getValue(worksheet, offset, 1);
+        break;
+      case 'Base':
+        f.base = getValue(worksheet, offset, 1);
+        break;
+      case 'Transpose':
+        f.transpose = parseInt(getValue(worksheet, offset, 1));
+        break;
+      case 'BPM':
+        f.bpm = parseInt(getValue(worksheet, offset, 1));
+        break;
+      case 'Row':
+        f.numChannel = parseInt(getValue(worksheet, offset, 1));
+        break;
+    }
+    offset++;
+    if (parameter == 'Row') {
+      break;
+    }
+  }
 
   f.channelNames = [];
-  for (var i=0; i<f.numChannel; i++) {
+  for (let i=0; i<f.numChannel; i++) {
       f.channelNames.push(getValue(worksheet, offset, 1));
       offset++;
   }
@@ -34,20 +56,20 @@ export default function data2object(data) {
 
   f.channelRaws = {};
   f.channels = {};
-  for (var k=0; k<f.numChannel; k++) {
-      var dataRaw = [];
-      var data = [];
-      var name = f.channelNames[k];
-      for (var i=0; i<f.numRow; i++) {
+  for (let k=0; k<f.numChannel; k++) {
+      const dataRaw = [];
+      const data = [];
+      const name = f.channelNames[k];
+      for (let i=0; i<f.numRow; i++) {
           dataRaw.push([]);
           data.push([]);
           for (var j=0; j<f.numCol; j++) {
-              var valueRaw = getValue(worksheet, offset + i * f.numChannel + k, j);
-              var value = valueRaw;
+              const valueRaw = getValue(worksheet, offset + i * f.numChannel + k, j);
+              let value = valueRaw;
               if (name == 'Melody') {
-                  value = convertMelody(value, f.base);
+                  value = convertMelody(value);
               } else if (name == 'Chord') {
-                  value = convertChord(value, f.base);
+                  value = convertChord(value);
               } else if (name == 'Lyrics') {
                   value = convertLyrics(value);
               }
@@ -63,27 +85,24 @@ export default function data2object(data) {
 }
 
 function getValue(ws, r, c) {
-  var cell = ws[XLSX.utils.encode_cell({ r: r, c: c })];
+  const cell = ws[XLSX.utils.encode_cell({ r: r, c: c })];
   return cell ? cell.w : '';
 }
 
-function convertMelody(v, base) {
-  // return notasi2angklung(base, v);
-  // return Note.angklung2notasi(Note.notasi2angklung(v, base), base);
-  // return parseNotasi(base, v);
-  return v;
+function convertMelody(v) {
+  return convertChord(v)
 }
 
-function convertChord(v, base) {
-  var chord = [];
-  var data = v.split('/');
+function convertChord(v) {
+  const chord = [];
+  const data = v.split('/');
   for (var i=0; i<data.length; i++) {
-      chord.push(data[i].trim());
+    const note = data[i].trim();
+    if (note != '') chord.push(note);
   }
   return chord;
-  // return v;
 }
 
 function convertLyrics(v) {
-  return v;
+  return v.trim();
 }

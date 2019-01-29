@@ -1,30 +1,61 @@
 <template>
   <div class="display">
-    <el-upload
-      drag
-      action="#"
-      :before-upload="beforeUpload">
-      <i class="el-icon-upload" />
-      <div class="el-upload__text">Drop file here or <em>click to upload</em></div>
-    </el-upload>
-    <h1>{{title}}</h1>
-    <p>Base: <span>{{baseTransposed}}</span></p>
-    <p>Transpose: <el-input-number v-model="transpose" /></p>
-    <p>Type: 
-      <el-select v-model="type">
-        <el-option
-          v-for="(item, index) in typeOption"
-          :key="index"
-          :value="item">
-        </el-option>
-      </el-select>
-    </p>
-    <p>BPM: <el-input-number v-model="bpm" :min="0" @change="bpmChanged"/></p>
-    <p>
-      <el-button v-if="!isPlay" type="primary" @click="play">Play</el-button>
-      <el-button v-if="isPlay" type="danger" @click="pause">Pause</el-button>
-      <el-button @click="reset">Reset</el-button>
-    </p>
+    <div class="information">
+      <div>
+        <el-upload
+          drag
+          action="#"
+          :before-upload="beforeUpload">
+          <i class="el-icon-upload" />
+          <div class="el-upload__text">Drop file here or <em>click to upload</em></div>
+        </el-upload>
+        <el-form label-width="5em">
+          <el-form-item>
+            <h1>{{title}}</h1>
+          </el-form-item>
+          <el-form-item label="Base">
+            <span>{{baseTransposed}}</span>
+          </el-form-item>
+          <el-form-item label="Transpose">
+            <el-input-number v-model="transpose" />
+          </el-form-item>
+          <el-form-item label="BPM">
+            <el-input-number v-model="bpm" :min="0" @change="bpmChanged"/>
+          </el-form-item>
+          <el-form-item label="Type">
+            <el-select v-model="type">
+              <el-option
+                v-for="(item, index) in typeOption"
+                :key="index"
+                :value="item">
+              </el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item>
+            <el-button v-if="!isPlay" type="primary" @click="play">Play</el-button>
+            <el-button v-if="isPlay" type="danger" @click="pause">Pause</el-button>
+            <el-button @click="reset">Reset</el-button>
+          </el-form-item>
+        </el-form>
+      </div>
+      <div>
+        <table class="freq-table">
+          <tr 
+            v-for="(item, index) in freq"
+            :key="index">
+            <td>
+              <Notasi 
+                :notasi="item.notasi" 
+                :type="type" 
+                :base="base" 
+                :transpose="transpose" />
+            </td>
+            <td>{{item.freq}}</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
     <div class="partitur">
       <div v-for="(row, i) in table" :key="i" class="row">
         <div 
@@ -36,13 +67,15 @@
           class="cell">
           <div class="cell-melody">
             <Notasi 
-              :notasi="cell['Melody']" 
+              v-for="(item, index) in cell['Melody']"
+              :key="index"
+              :notasi="item" 
               :type="type" 
               :base="base" 
               :transpose="transpose" />
             <Notasi 
               v-for="(item, index) in cell['Chord']"
-              :key="index"
+              :key="cell['Melody'].length + index"
               :notasi="item" 
               :type="type" 
               :base="base" 
@@ -63,7 +96,7 @@
 
 <script>
 import Notasi from './Notasi'
-import {noteTranspose} from '@/js/Note'
+import {noteTranspose, notasi2angklung} from '@/js/Note'
 import data2object from '@/js/data2object'
 
 export default {
@@ -74,13 +107,14 @@ export default {
   data() {
     return {
       typeOption: ['notasi', 'angklung', 'note'],
-      type: 'notasi',
+      type: 'angklung',
       fps: 200,
       title: 'Untitled',
       base: 'C5',
       second: 0,
       transpose: 0,
       bpm: 60,
+      freq: [],
       fileList: [],
       table: [],
       startBeatFraction: 0.0,
@@ -141,7 +175,7 @@ export default {
       if (ev.buttons == 1) {
         var rect = ev.currentTarget.getBoundingClientRect()
         var x = ev.clientX - rect.left - ev.currentTarget.clientLeft
-        var y = ev.clientY - rect.top - ev.currentTarget.clientTop
+        // var y = ev.clientY - rect.top - ev.currentTarget.clientTop
         var fraction = x / ev.currentTarget.clientWidth
         this.currentBeatFraction = beat + fraction
         this.setStart()
@@ -156,31 +190,68 @@ export default {
     },
     onLoad(event) {
       const data = event.target.result
-      var obj = data2object(data)
-      console.log(obj)
+      const obj = data2object(data)
+      // console.log(obj)
+      this.freq = this.getFreq(obj)
+      // console.log(this.freq)
       this.title = obj.title
       this.base = obj.base
       this.bpm = obj.bpm
-      this.transpose = 0
+      this.transpose = obj.transpose
       this.table = []
-      for (var i=0; i<obj.channels['Melody'].length; i++) {
+      for (let i=0; i<obj.channels['Melody'].length; i++) {
         this.table.push([])
-        for (var j=0; j<obj.channels['Melody'][i].length; j++) {
-          var cell = {}
-          for (var k=0; k<obj.channelNames.length; k++) {
-            var channelName = obj.channelNames[k]
+        for (let j=0; j<obj.channels['Melody'][i].length; j++) {
+          const cell = {}
+          for (let k=0; k<obj.channelNames.length; k++) {
+            const channelName = obj.channelNames[k]
             cell[channelName] = obj.channels[channelName][i][j]
           }
           this.table[i].push(cell)
         }
       }
-    }
+    },
+    getFreq(obj) {
+      const freq = {}
+      for (let i=0; i<obj.channels['Melody'].length; i++) {
+        for (let j=0; j<obj.channels['Melody'][i].length; j++) {
+          for (let k=0; k<obj.channelNames.length; k++) {
+            const channelName = obj.channelNames[k]
+            const data = obj.channels[channelName][i][j]
+            if (channelName == 'Melody' || channelName == 'Chord') {
+              for (let note of data) {
+                if (note == '' || note == '0') continue
+                if(!freq[note]) freq[note] = 0
+                freq[note]++
+              }
+            }
+          }
+        }
+      }
+
+      const sortedFreq = []
+      for (let item in freq) {
+        sortedFreq.push({
+          angklung: notasi2angklung(item, obj.base),
+          notasi: item, 
+          freq: freq[item]
+        })
+      }
+      sortedFreq.sort((a, b) => a.angklung - b.angklung)
+      return sortedFreq
+    },
   }
 }
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+.display {
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+}
+
 .partitur {
   display: flex;
   flex-flow: column nowrap;
@@ -255,4 +326,27 @@ export default {
   background-color: red;
   top: 0;
 }
+
+.freq-table {
+  border-collapse: collapse;
+}
+
+.freq-table td {
+  padding: .5em 2em;
+  text-align: center;
+  border: 1px solid rgb(200, 200, 200);
+}
+
+.freq-table td:first-of-type {
+  background-color: rgb(230, 230, 230);
+}
+
+.information {
+  display: flex;
+}
+
+.information > * + * {
+  margin-left: 1em;
+}
+
 </style>
