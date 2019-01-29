@@ -206,7 +206,7 @@ export default {
 }
 
 .partitur .row:first-of-type .cell {
-  border-top: 1px rgb(200, 200, 200) solid;
+  border-top: 1px #c8c8c8 solid;
 }
 
 .partitur .cell:nth-of-type(4n - 3),
@@ -216,6 +216,10 @@ export default {
 
 .partitur .cell:nth-of-type(8n) {
   border-right-width: 5px;
+}
+
+.partitur .cell > * {
+  z-index: 1;
 }
 
 .partitur .cell-melody {
@@ -238,8 +242,8 @@ export default {
 }
 
 .partitur .notasi {
-  margin-left: 0.1em;
-  margin-right: 0.1em;
+  margin-left: 0.2em;
+  margin-right: 0.2em;
 }
 
 .partitur .playhead {
