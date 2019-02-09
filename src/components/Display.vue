@@ -61,9 +61,9 @@
         <div 
           v-for="(cell, j) in row" 
           :key="j"
-          :class="{ current: i * 32 + j == currentBeat}"
-          @mousedown="playheadMouseMove($event, i * 32 + j)"
-          @mousemove="playheadMouseMove($event, i * 32 + j)"
+          :class="{ current: i * row.length + j == currentBeat}"
+          @mousedown="playheadMouseMove($event, i * row.length + j)"
+          @mousemove="playheadMouseMove($event, i * row.length + j)"
           class="cell">
           <div class="cell-melody">
             <Notasi 
@@ -85,7 +85,7 @@
             {{cell['Lyrics']}}
           </div>
           <div 
-            v-if="i * 32 + j == currentBeat" 
+            v-if="i * row.length + j == currentBeat" 
             :style="{ left: `${currentFraction*100}%`}"
             class="playhead"></div>
         </div>
@@ -173,10 +173,9 @@ export default {
     },
     playheadMouseMove(ev, beat) {
       if (ev.buttons == 1) {
-        var rect = ev.currentTarget.getBoundingClientRect()
-        var x = ev.clientX - rect.left - ev.currentTarget.clientLeft
-        // var y = ev.clientY - rect.top - ev.currentTarget.clientTop
-        var fraction = x / ev.currentTarget.clientWidth
+        var x = ev.clientX - ev.currentTarget.offsetLeft
+        // var y = ev.clientY - ev.currentTarget.offsetTop
+        var fraction = x / ev.currentTarget.offsetWidth
         this.currentBeatFraction = beat + fraction
         this.setStart()
       }
@@ -256,6 +255,8 @@ export default {
   display: flex;
   flex-flow: column nowrap;
   user-select: none;
+  width: 100%;
+  font-size: 1.5em;
 }
 
 .partitur .row {
@@ -265,9 +266,10 @@ export default {
 .partitur .cell {
   position: relative;
   display: flex;
+  box-sizing: border-box;
   flex-direction: column;
   align-items: center;
-  flex: 0 0 auto;
+  flex: 1 0 auto;
   width: 2.5em;
   background-color: white;
   border-right: 1px rgb(200, 200, 200) solid;
