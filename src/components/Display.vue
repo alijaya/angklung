@@ -139,14 +139,21 @@ export default {
   mounted() {
     // add spacebar listener
     window.addEventListener('keydown', e => {
-      if (e.keyCode == 32 && e.target == document.body) {
+      if (e.key == ' ' && e.target == document.body) {
+        // stop space to scroll page
+        e.preventDefault()
+      }
+    })
+    window.addEventListener('keyup', e => {
+      if (e.key == ' ') {
         if (!this.isPlay) {
           this.play()
         } else {
           this.pause()
         }
-        // stop space to scroll page
-        e.preventDefault()
+      }
+      if (e.key == 'Escape') {
+        this.reset()
       }
     })
   },
