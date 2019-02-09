@@ -1,5 +1,5 @@
 <template>
-  <div v-if="parsed" class="notasi">
+  <div v-if="parsed" class="notasi" :class="{'is-stop': parsed.note == 0}">
     <template v-if="type == 'notasi'">
       <div 
         v-if="parsed.sharp == 1" 
@@ -98,5 +98,9 @@ export default {
   background-color: black;
   border-radius: 50%;
   margin: 0.1em;
+}
+
+.is-stop {
+  color: red;
 }
 </style>

@@ -5,12 +5,14 @@
 // Parsed: note 1, sharp 0, octave 0
 // base always in note
 
+const stopSymbol = 'S'
+
 ///////////////
 // Transpose //
 ///////////////
 
 export function combTranspose(comb, transpose, changeData = false) {
-  var ret = { type: comb.type, base: comb.base, data: comb.note };
+  const ret = { type: comb.type, base: comb.base, data: comb.note };
   if (comb.type == 'note') {
     ret.data = noteTranspose(comb.data, transpose);
     ret.base = noteTranspose(comb.base, transpose);
@@ -33,7 +35,7 @@ export function combTranspose(comb, transpose, changeData = false) {
 }
 
 export function combChangeBase(comb, target, changeData = false) {
-  var transpose = note2angklung(target) - note2angklung(comb.base);
+  const transpose = note2angklung(target) - note2angklung(comb.base);
   return combTranspose(comb, transpose, changeData);
 }
 
@@ -42,18 +44,18 @@ export function noteTranspose(note, transpose) {
 }
 
 export function noteChangeBase(note, base, target) {
-  var transpose = note2angklung(target) - note2angklung(base);
+  const transpose = note2angklung(target) - note2angklung(base);
   return noteTranspose(note, transpose);
 }
 
 export function angklungTranspose(angklung, transpose) {
   if (angklung == null) return null;
-  if (angklung == 'stop') return 'stop';
+  if (angklung == stopSymbol) return stopSymbol;
   return angklung + transpose;
 }
 
 export function angklungChangeBase(angklung, base, target) {
-  var transpose = note2angklung(target) - note2angklung(base);
+  const transpose = note2angklung(target) - note2angklung(base);
   return angklungTranspose(angklung, transpose);
 }
 
@@ -62,7 +64,7 @@ export function notasiTranspose(notasi, transpose) {
 }
 
 export function notasiChangeBase(notasi, base, target) {
-  var transpose = note2angklung(target) - note2angklung(base);
+  const transpose = note2angklung(target) - note2angklung(base);
   return notasiTranspose(notasi, transpose);
 }
 
@@ -71,7 +73,7 @@ export function parsedTranspose(parsed, transpose) {
 }
 
 export function parsedChangeBase(parsed, base, target) {
-  var transpose = note2angklung(target) - note2angklung(base);
+  const transpose = note2angklung(target) - note2angklung(base);
   return parsedTranspose(parsed, transpose);
 }
 
@@ -147,14 +149,14 @@ export function parsed2comb(parsed, base) {
 // Converter //
 ///////////////
 
-var notes = ['A', 'A#', 'B', 'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#'];
-var i2n = [];
-var n2i = {};
+const notes = ['A', 'A#', 'B', 'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#'];
+const i2n = [];
+const n2i = {};
 
-for (var i=0; i<8; i++) {
-  for (var j=0; j<notes.length; j++) {
-    var note = notes[j] + i;
-    var int = i * notes.length + j;
+for (let i=0; i<8; i++) {
+  for (let j=0; j<notes.length; j++) {
+    const note = notes[j] + i;
+    const int = i * notes.length + j;
     i2n[int] = note;
     n2i[note] = int;
   }
@@ -162,13 +164,13 @@ for (var i=0; i<8; i++) {
 
 export function note2angklung(v) {
   // cleanup
-  if (v == 'stop') return 'stop'
+  if (v == stopSymbol) return stopSymbol
   v = v.trim().toUpperCase();
   return n2i[v] - n2i['F#4'];
 }
 
 export function angklung2note(v) {
-  if (v == 'stop') return 'stop'
+  if (v == stopSymbol) return stopSymbol
   return i2n[v + n2i['F#4']];
 }
 
@@ -177,10 +179,10 @@ export function notasi2parsed(v) {
 
   v = v.trim().toUpperCase();
 
-  var ret = { note: 0, sharp: 0, octave: 0 };
+  const ret = { note: 0, sharp: 0, octave: 0 };
 
-  var o = 0;
-  for (var i=o; i<v.length; i++) {
+  let o = 0;
+  for (let i=o; i<v.length; i++) {
     if (v.charAt(i) == '*') {
       ret.octave --;
       o++;
@@ -196,7 +198,7 @@ export function notasi2parsed(v) {
     o++;
   }
 
-  for (var i=o; i<v.length; i++) {
+  for (let i=o; i<v.length; i++) {
     if (v.charAt(i) == '*') {
       ret.octave ++;
       o++;
@@ -209,12 +211,12 @@ export function notasi2parsed(v) {
 }
 
 export function parsed2notasi(v) {
-  var parsed = v;
+  const parsed = v;
   if (!parsed) return '';
 
-  var ret = '';
+  let ret = '';
 
-  for (var i=0; i<-parsed.octave; i++) {
+  for (let i=0; i<-parsed.octave; i++) {
     ret += '*';
   }
 
@@ -223,7 +225,7 @@ export function parsed2notasi(v) {
     ret += '#';
   }
 
-  for (var i=0; i<parsed.octave; i++) {
+  for (let i=0; i<parsed.octave; i++) {
     ret += '*';
   }
 
@@ -233,11 +235,11 @@ export function parsed2notasi(v) {
 export function angklung2parsed(v, base) {
   if (v == null) return null;
 
-  var ret = { note: 0, sharp: 0, octave: 0 };
+  const ret = { note: 0, sharp: 0, octave: 0 };
 
-  if (v == 'stop') return ret;
+  if (v == stopSymbol) return ret;
 
-  var note = v - note2angklung(base);
+  let note = v - note2angklung(base);
 
   while (note < 0) {
     note += 12;
@@ -249,7 +251,7 @@ export function angklung2parsed(v, base) {
     ret.octave ++;
   }
 
-  var map = [[1, 0], [1, 1], [2, 0], [2, 1], [3, 0], [4, 0], [4, 1], [5, 0], [5, 1], [6, 0], [6, 1], [7, 0]];
+  const map = [[1, 0], [1, 1], [2, 0], [2, 1], [3, 0], [4, 0], [4, 1], [5, 0], [5, 1], [6, 0], [6, 1], [7, 0]];
 
   note = map[note];
   ret.note = note[0];
@@ -259,12 +261,12 @@ export function angklung2parsed(v, base) {
 }
 
 export function parsed2angklung(v, base) {
-  var map = [0, 0, 2, 4, 5, 7, 9, 11];
+  const map = [0, 0, 2, 4, 5, 7, 9, 11];
 
-  var parsed = v;
+  const parsed = v;
   if (!parsed) return null;
 
-  if (parsed.note == 0) return 'stop';
+  if (parsed.note == 0) return stopSymbol;
 
   return note2angklung(base) + map[parsed.note] + parsed.sharp + parsed.octave * 12;
 }
