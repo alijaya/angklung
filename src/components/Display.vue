@@ -136,6 +136,20 @@ export default {
       return this.currentBeatFraction - this.currentBeat
     }
   },
+  mounted() {
+    // add spacebar listener
+    window.addEventListener('keydown', e => {
+      if (e.keyCode == 32 && e.target == document.body) {
+        if (!this.isPlay) {
+          this.play()
+        } else {
+          this.pause()
+        }
+        // stop space to scroll page
+        e.preventDefault()
+      }
+    })
+  },
   methods: {
     play() {
       if (!this.isPlay) {
@@ -181,6 +195,8 @@ export default {
       }
     },
     beforeUpload(file) {
+      // to deselect
+      document.activeElement.blur()
       const reader = new FileReader()
 
       reader.onload = this.onLoad.bind(this)
