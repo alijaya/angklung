@@ -134,6 +134,10 @@ export default {
     },
     currentFraction() {
       return this.currentBeatFraction - this.currentBeat
+    },
+    finishPercentage() {
+      const finish = this.currentBeatFraction / (this.table.length * this.table[0].length)
+      return (finish < 0)? 0 : (finish > 1)? 1 : finish
     }
   },
   mounted() {
@@ -175,9 +179,11 @@ export default {
     },
     update(timestamp) {
       if (!this.startTime) this.startTime = timestamp
-      var elapsedTime = timestamp - this.startTime // in ms
-      var bpms = this.bpm / 60 / 1000 * 2
+      const elapsedTime = timestamp - this.startTime // in ms
+      const bpms = this.bpm / 60 / 1000 * 2
       this.currentBeatFraction = elapsedTime * bpms + this.startBeatFraction
+      const el = document.documentElement
+      el.scrollTop = (el.scrollHeight - el.clientHeight) * this.finishPercentage
       this.timer = window.requestAnimationFrame(this.update.bind(this))
     },
     reset() {
@@ -213,9 +219,7 @@ export default {
     onLoad(event) {
       const data = event.target.result
       const obj = data2object(data)
-      // console.log(obj)
       this.freq = this.getFreq(obj)
-      // console.log(this.freq)
       this.title = obj.title
       this.base = obj.base
       this.bpm = obj.bpm
@@ -272,6 +276,7 @@ export default {
   display: flex;
   flex-flow: column nowrap;
   align-items: center;
+  margin-bottom: 75vh;
 }
 
 .partitur {
