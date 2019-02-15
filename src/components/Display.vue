@@ -101,7 +101,7 @@ import data2object from '@/js/data2object'
 import _ from 'lodash'
 
 const timingsrcURL = 'https://webtiming.github.io/timingsrc/lib/timingsrc-min-v2.js'
-const mcorpURL = 'http://www.mcorp.no/lib/mcorp-2.0.js'
+const mcorpURL = 'https://www.mcorp.no/lib/mcorp-2.0.js'
 
 const MCORP_APPID = '2089995353868620333'
 const MCORP_MOTION_NAME = 'main'
