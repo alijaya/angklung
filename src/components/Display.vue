@@ -156,15 +156,14 @@ export default {
     this.changeVector = _.throttle((vector) => {
       if (this.to) this.to.update(vector)
     }, 300)
-  },
-  mounted() {
+
     Promise.all([
       this.$loadScript(timingsrcURL),
       this.$loadScript(mcorpURL)
     ])
     .then(() => {
-      // TIMINGSRC available
-      // MCorp available
+      /*global TIMINGSRC*/
+      /*global MCorp*/
       const app = MCorp.app(MCORP_APPID)
       app.run = () => {
         const timingProvider = app.motions[MCORP_MOTION_NAME]
@@ -195,30 +194,20 @@ export default {
         this.reset()
       }
     })
+
+    this.$db.collection('global').doc('global')
+    .onSnapshot((doc) => {
+      this.loadData(doc.data().data)
+    })
   },
   methods: {
     play() {
-      // if (!this.isPlay) {
-      //   this.timer = requestAnimationFrame(this.update)
-      //   this.setStart()
-      //   this.isPlay = true
-      // }
       this.changeVector({velocity: this.halfbps, acceleration: 0})
     },
     pause() {
-      // if (this.isPlay) {
-      //   cancelAnimationFrame(this.timer)
-      //   this.timer = null
-      //   this.setStart()
-      //   this.isPlay = false
-      // }
       this.changeVector({velocity: 0, acceleration: 0})
     },
-    update(timestamp) {
-      // if (!this.startTime) this.startTime = timestamp
-      // const elapsedTime = timestamp - this.startTime // in ms
-      // const bpms = this.bpm / 60 / 1000 * 2
-      // this.currentBeatFraction = elapsedTime * bpms + this.startBeatFraction
+    update() {
       if (this.to) {
         this.currentBeatFraction = this.to.pos
         if (this.isPlay) {
@@ -229,26 +218,17 @@ export default {
       this.timer = requestAnimationFrame(this.update)
     },
     reset() {
-      // this.currentBeatFraction = 0
-      // this.setStart()
-      // this.pause()
       this.changeVector({position: 0, velocity: 0, acceleration: 0})
     },
     bpmChanged() {
       // update BPM
       if (this.isPlay) this.play()
     },
-    // setStart() {
-    //   this.startTime = null
-    //   this.startBeatFraction = this.currentBeatFraction
-    // },
     playheadMouseMove(ev, beat) {
       if (ev.buttons == 1) {
         var x = ev.clientX - ev.currentTarget.offsetLeft
         // var y = ev.clientY - ev.currentTarget.offsetTop
         var fraction = x / ev.currentTarget.offsetWidth
-        // this.currentBeatFraction = beat + fraction
-        // this.setStart()
         this.changeVector({position: beat + fraction})
       }
     },
@@ -263,6 +243,11 @@ export default {
     },
     onLoad(event) {
       const data = event.target.result
+      this.$db.collection('global').doc('global').set({
+        data: data,
+      }, { merge: true })
+    },
+    loadData(data){
       const obj = data2object(data)
       this.freq = this.getFreq(obj)
       this.title = obj.title
