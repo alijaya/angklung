@@ -9,7 +9,9 @@
   },
   "dependencies": {
     "element-ui": "^2.4.11",
+    "lodash": "^4.17.11",
     "vue": "^2.5.17",
+    "vue-plugin-load-script": "^1.2.0",
     "vue-timers": "^1.10.0",
     "xlsx": "^0.14.1"
   },

@@ -98,6 +98,13 @@
 import Notasi from './Notasi'
 import {noteTranspose, notasi2angklung} from '@/js/Note'
 import data2object from '@/js/data2object'
+import _ from 'lodash'
+
+const timingsrcURL = 'https://webtiming.github.io/timingsrc/lib/timingsrc-min-v2.js'
+const mcorpURL = 'http://www.mcorp.no/lib/mcorp-2.0.js'
+
+const MCORP_APPID = '2089995353868620333'
+const MCORP_MOTION_NAME = 'main'
 
 export default {
   name: 'Display',
@@ -120,6 +127,8 @@ export default {
       startBeatFraction: 0.0,
       currentBeatFraction: 0.0,
       isPlay: false,
+      to: null,
+      beatLength: 0,
     }
   },
   props: {
@@ -136,11 +145,37 @@ export default {
       return this.currentBeatFraction - this.currentBeat
     },
     finishPercentage() {
-      const finish = this.currentBeatFraction / (this.table.length * this.table[0].length)
+      const finish = this.currentBeatFraction / this.beatLength
       return (finish < 0)? 0 : (finish > 1)? 1 : finish
+    },
+    halfbps() {
+      return this.bpm / 60 * 2
     }
   },
+  created() {
+    this.changeVector = _.throttle((vector) => {
+      if (this.to) this.to.update(vector)
+    }, 300)
+  },
   mounted() {
+    Promise.all([
+      this.$loadScript(timingsrcURL),
+      this.$loadScript(mcorpURL)
+    ])
+    .then(() => {
+      // TIMINGSRC available
+      // MCorp available
+      const app = MCorp.app(MCORP_APPID)
+      app.run = () => {
+        const timingProvider = app.motions[MCORP_MOTION_NAME]
+        this.to = new TIMINGSRC.TimingObject({provider: timingProvider})
+        this.to.on('change', () => {
+          this.isPlay = this.to.vel != 0
+        })
+        this.update()
+      }
+    })
+
     // add spacebar listener
     window.addEventListener('keydown', e => {
       if (e.key == ' ' && e.target == document.body) {
@@ -163,48 +198,58 @@ export default {
   },
   methods: {
     play() {
-      if (!this.isPlay) {
-        this.timer = window.requestAnimationFrame(this.update.bind(this))
-        this.setStart()
-        this.isPlay = true
-      }
+      // if (!this.isPlay) {
+      //   this.timer = requestAnimationFrame(this.update)
+      //   this.setStart()
+      //   this.isPlay = true
+      // }
+      this.changeVector({velocity: this.halfbps, acceleration: 0})
     },
     pause() {
-      if (this.isPlay) {
-        window.cancelAnimationFrame(this.timer)
-        this.timer = null
-        this.setStart()
-        this.isPlay = false
-      }
+      // if (this.isPlay) {
+      //   cancelAnimationFrame(this.timer)
+      //   this.timer = null
+      //   this.setStart()
+      //   this.isPlay = false
+      // }
+      this.changeVector({velocity: 0, acceleration: 0})
     },
     update(timestamp) {
-      if (!this.startTime) this.startTime = timestamp
-      const elapsedTime = timestamp - this.startTime // in ms
-      const bpms = this.bpm / 60 / 1000 * 2
-      this.currentBeatFraction = elapsedTime * bpms + this.startBeatFraction
-      const el = document.documentElement
-      el.scrollTop = (el.scrollHeight - el.clientHeight) * this.finishPercentage
-      this.timer = window.requestAnimationFrame(this.update.bind(this))
+      // if (!this.startTime) this.startTime = timestamp
+      // const elapsedTime = timestamp - this.startTime // in ms
+      // const bpms = this.bpm / 60 / 1000 * 2
+      // this.currentBeatFraction = elapsedTime * bpms + this.startBeatFraction
+      if (this.to) {
+        this.currentBeatFraction = this.to.pos
+        if (this.isPlay) {
+          const el = document.documentElement
+          el.scrollTop = (el.scrollHeight - el.clientHeight) * this.finishPercentage
+        }
+      }
+      this.timer = requestAnimationFrame(this.update)
     },
     reset() {
-      this.currentBeatFraction = 0
-      this.setStart()
-      this.pause()
+      // this.currentBeatFraction = 0
+      // this.setStart()
+      // this.pause()
+      this.changeVector({position: 0, velocity: 0, acceleration: 0})
     },
     bpmChanged() {
-      this.setStart()
+      // update BPM
+      if (this.isPlay) this.play()
     },
-    setStart() {
-      this.startTime = null
-      this.startBeatFraction = this.currentBeatFraction
-    },
+    // setStart() {
+    //   this.startTime = null
+    //   this.startBeatFraction = this.currentBeatFraction
+    // },
     playheadMouseMove(ev, beat) {
       if (ev.buttons == 1) {
         var x = ev.clientX - ev.currentTarget.offsetLeft
         // var y = ev.clientY - ev.currentTarget.offsetTop
         var fraction = x / ev.currentTarget.offsetWidth
-        this.currentBeatFraction = beat + fraction
-        this.setStart()
+        // this.currentBeatFraction = beat + fraction
+        // this.setStart()
+        this.changeVector({position: beat + fraction})
       }
     },
     beforeUpload(file) {
@@ -236,6 +281,7 @@ export default {
           this.table[i].push(cell)
         }
       }
+      this.beatLength = obj.numCol * obj.numRow
     },
     getFreq(obj) {
       const freq = {}
