@@ -1,47 +1,45 @@
 <template>
   <div class="display">
     <div class="information">
-      <div>
-        <el-upload
-          drag
-          action="#"
-          :before-upload="beforeUpload">
-          <i class="el-icon-upload" />
-          <div class="el-upload__text">Drop file here or <em>click to upload</em></div>
-        </el-upload>
-        <el-form label-width="5em">
-          <el-form-item>
-            <h1>{{title}}</h1>
-          </el-form-item>
-          <el-form-item>
-            <el-button @click="resetSettings">Reset Settings</el-button>
-          </el-form-item>
-          <el-form-item label="Base">
-            <span>{{baseTransposed}}</span>
-          </el-form-item>
-          <el-form-item label="Transpose">
-            <el-input-number v-model="transpose" @change="changeTranspose"/>
-          </el-form-item>
-          <el-form-item label="BPM">
-            <el-input-number v-model="bpm" :min="0" @change="changeBPM"/>
-          </el-form-item>
-          <el-form-item label="Type">
-            <el-select v-model="type" @change="changeType">
-              <el-option
-                v-for="(item, index) in typeOption"
-                :key="index"
-                :value="item">
-              </el-option>
-            </el-select>
-          </el-form-item>
-          <el-form-item>
-            <el-button v-if="!isPlay" type="primary" @click="play">Play</el-button>
-            <el-button v-if="isPlay" type="danger" @click="pause">Pause</el-button>
+      <el-progress :percentage="100*finishPercentage" :show-text="false" />
+      <el-form class="controls" :inline="true">
+        <el-form-item>
+          <el-upload
+            action="#"
+            :before-upload="beforeUpload">
+            <el-button icon="el-icon-upload">Open</el-button>
+          </el-upload>
+        </el-form-item>
+        <el-form-item>
+          <el-tooltip content="Reset BPM and Transpose" placement="top">
+            <el-button icon="el-icon-refresh" circle @click="resetSettings"></el-button>
+          </el-tooltip>
+        </el-form-item>
+        <el-form-item label="Transpose">
+          <el-input-number class="input" v-model="transpose" controls-position="right" @change="changeTranspose"/>
+        </el-form-item>
+        <el-form-item label="BPM">
+          <el-input-number class="input" v-model="bpm" :min="0" :controls="false" @change="changeBPM"/>
+        </el-form-item>
+        <el-form-item label="Type">
+          <el-select class="input" v-model="type" @change="changeType">
+            <el-option
+              v-for="(item, index) in typeOption"
+              :key="index"
+              :value="item">
+            </el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item>
+          <el-tooltip content="Shortcut: Space" placement="top">
+            <el-button :type="isPlay? 'danger' : 'primary'" @click="toggle">{{isPlay? 'Pause' : 'Play'}}</el-button>
+          </el-tooltip>
+          <el-tooltip content="Shortcut: Esc" placement="top">
             <el-button @click="reset">Reset</el-button>
-          </el-form-item>
-        </el-form>
-      </div>
-      <div>
+          </el-tooltip>
+        </el-form-item>
+      </el-form>
+      <!-- <div>
         <table class="freq-table">
           <tr 
             v-for="(item, index) in freq"
@@ -56,9 +54,12 @@
             <td>{{item.freq}}</td>
           </tr>
         </table>
-      </div>
+      </div> -->
     </div>
-
+    <div>
+      <h1>{{title}}</h1>
+      <p>Base: {{baseTransposed}}</p>
+    </div>
     <div class="partitur">
       <div v-for="(row, i) in table" :key="i" class="row">
         <div 
@@ -203,6 +204,7 @@ export default {
       if (e.key == 'Escape') {
         this.reset()
       }
+      e.preventDefault()
     })
 
     this.$db.collection('global').doc('settings')
@@ -219,6 +221,13 @@ export default {
     })
   },
   methods: {
+    toggle() {
+      if (this.isPlay) {
+        this.pause()
+      } else {
+        this.play()
+      }
+    },
     play() {
       this.changeVector({velocity: this.halfbps, acceleration: 0})
     },
@@ -443,11 +452,26 @@ export default {
 }
 
 .information {
-  display: flex;
+  position: fixed;
+  box-sizing: border-box;
+  z-index: 2;
+  background: white;
+  bottom: 0;
+  width: 100%;
+  box-shadow: 0 -15px 30px 0 rgba(0,0,0,0.11),
+              0 -5px 15px 0 rgba(0,0,0,0.08);
 }
 
-.information > * + * {
-  margin-left: 1em;
+.controls {
+  padding: 1em;
+}
+
+.input {
+  width: 7em;
+}
+
+.el-form--inline .el-form-item {
+  margin-bottom: 0;
 }
 
 </style>
