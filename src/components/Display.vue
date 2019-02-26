@@ -169,7 +169,7 @@ export default {
     }
   },
   watch: {
-    bpm(bpm) {
+    bpm() {
       if (this.isPlay) this.play()
     }
   },
@@ -365,6 +365,7 @@ export default {
 .display {
   display: flex;
   flex-flow: column nowrap;
+  box-sizing: border-box;
   align-items: center;
   margin-bottom: 75vh;
 }
@@ -372,6 +373,7 @@ export default {
 .partitur {
   display: flex;
   flex-flow: column nowrap;
+  box-sizing: border-box;
   user-select: none;
   width: 100%;
   font-size: 1.5em;
