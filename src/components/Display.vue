@@ -1,5 +1,26 @@
 <template>
   <div class="display">
+    <el-dialog
+      title="Frequency Table"
+      :visible.sync="frequencyVisible">
+      <table class="freq-table">
+        <tr 
+          v-for="(item, index) in freq"
+          :key="index">
+          <td>
+            <Notasi 
+              :notasi="item.notasi" 
+              :type="type" 
+              :base="base" 
+              :transpose="transpose" />
+          </td>
+          <td>{{item.freq}}</td>
+        </tr>
+      </table>
+      <div slot="footer">
+        <el-button type="primary" @click="frequencyVisible = false">Close</el-button>
+      </div>
+    </el-dialog>
     <div class="information">
       <el-progress :percentage="100*finishPercentage" :show-text="false" />
       <el-form class="controls" :inline="true">
@@ -11,6 +32,9 @@
           </el-upload>
         </el-form-item>
         <el-form-item>
+          <el-tooltip content="See Frequency Table" placement="top">
+            <el-button type="text" @click="frequencyVisible = true">Frequency</el-button>
+          </el-tooltip>
           <el-tooltip content="Reset BPM and Transpose" placement="top">
             <el-button icon="el-icon-refresh" circle @click="resetSettings"></el-button>
           </el-tooltip>
@@ -39,22 +63,6 @@
           </el-tooltip>
         </el-form-item>
       </el-form>
-      <!-- <div>
-        <table class="freq-table">
-          <tr 
-            v-for="(item, index) in freq"
-            :key="index">
-            <td>
-              <Notasi 
-                :notasi="item.notasi" 
-                :type="type" 
-                :base="base" 
-                :transpose="transpose" />
-            </td>
-            <td>{{item.freq}}</td>
-          </tr>
-        </table>
-      </div> -->
     </div>
     <div>
       <h1>{{title}}</h1>
@@ -135,6 +143,7 @@ export default {
       isPlay: false,
       to: null,
       beatLength: 0,
+      frequencyVisible: false,
     }
   },
   props: {
@@ -152,6 +161,7 @@ export default {
     },
     finishPercentage() {
       const finish = this.currentBeatFraction / this.beatLength
+      if (isNaN(finish)) return 0
       return (finish < 0)? 0 : (finish > 1)? 1 : finish
     },
     halfbps() {
@@ -456,6 +466,7 @@ export default {
   box-sizing: border-box;
   z-index: 2;
   background: white;
+  left: 0;
   bottom: 0;
   width: 100%;
   box-shadow: 0 -15px 30px 0 rgba(0,0,0,0.11),
