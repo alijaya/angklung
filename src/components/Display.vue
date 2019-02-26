@@ -13,17 +13,20 @@
           <el-form-item>
             <h1>{{title}}</h1>
           </el-form-item>
+          <el-form-item>
+            <el-button @click="resetSettings">Reset Settings</el-button>
+          </el-form-item>
           <el-form-item label="Base">
             <span>{{baseTransposed}}</span>
           </el-form-item>
           <el-form-item label="Transpose">
-            <el-input-number v-model="transpose" />
+            <el-input-number v-model="transpose" @change="changeTranspose"/>
           </el-form-item>
           <el-form-item label="BPM">
-            <el-input-number v-model="bpm" :min="0" @change="bpmChanged"/>
+            <el-input-number v-model="bpm" :min="0" @change="changeBPM"/>
           </el-form-item>
           <el-form-item label="Type">
-            <el-select v-model="type">
+            <el-select v-model="type" @change="changeType">
               <el-option
                 v-for="(item, index) in typeOption"
                 :key="index"
@@ -120,7 +123,9 @@ export default {
       base: 'C5',
       second: 0,
       transpose: 0,
+      initTranspose: 0,
       bpm: 60,
+      initBPM: 60,
       freq: [],
       fileList: [],
       table: [],
@@ -150,6 +155,11 @@ export default {
     },
     halfbps() {
       return this.bpm / 60 * 2
+    }
+  },
+  watch: {
+    bpm(bpm) {
+      if (this.isPlay) this.play()
     }
   },
   created() {
@@ -195,6 +205,14 @@ export default {
       }
     })
 
+    this.$db.collection('global').doc('settings')
+    .onSnapshot((doc) => {
+      const data = doc.data()
+      this.bpm = data.bpm
+      this.transpose = data.transpose
+      this.type = data.type
+    })
+
     this.$db.collection('global').doc('global')
     .onSnapshot((doc) => {
       this.loadData(doc.data().data)
@@ -220,9 +238,26 @@ export default {
     reset() {
       this.changeVector({position: 0, velocity: 0, acceleration: 0})
     },
-    bpmChanged() {
-      // update BPM
-      if (this.isPlay) this.play()
+    changeTranspose(transpose) {
+      this.$db.collection('global').doc('settings').set({
+        transpose: transpose,
+      }, { merge: true })
+    },
+    changeBPM(bpm) {
+      this.$db.collection('global').doc('settings').set({
+        bpm: bpm,
+      }, { merge: true })
+    },
+    changeType(type) {
+      this.$db.collection('global').doc('settings').set({
+        type: type,
+      }, { merge: true })
+    },
+    resetSettings() {
+      this.$db.collection('global').doc('settings').set({
+        transpose: this.initTranspose,
+        bpm: this.initBPM,
+      }, { merge: true })
     },
     playheadMouseMove(ev, beat) {
       if (ev.buttons == 1) {
@@ -243,6 +278,7 @@ export default {
     },
     onLoad(event) {
       const data = event.target.result
+      this.isResetSettings = true
       this.$db.collection('global').doc('global').set({
         data: data,
       }, { merge: true })
@@ -252,8 +288,12 @@ export default {
       this.freq = this.getFreq(obj)
       this.title = obj.title
       this.base = obj.base
-      this.bpm = obj.bpm
-      this.transpose = obj.transpose
+      this.initBPM = obj.bpm
+      this.initTranspose = obj.transpose
+      if (this.isResetSettings) {
+        this.isResetSettings = false
+        this.resetSettings()
+      }
       this.table = []
       for (let i=0; i<obj.channels['Melody'].length; i++) {
         this.table.push([])
