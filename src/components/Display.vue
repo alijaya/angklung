@@ -15,6 +15,9 @@
               :transpose="transpose" />
           </td>
           <td>{{item.freq}}</td>
+          <td>
+            <el-switch v-model="item.highlight" />
+          </td>
         </tr>
       </table>
       <div slot="footer">
@@ -49,14 +52,16 @@
                 :notasi="item" 
                 :type="type" 
                 :base="base" 
-                :transpose="transpose" />
+                :transpose="transpose"
+                :class="{'highlight': freqDict[item] && freqDict[item].highlight}" />
               <Notasi 
                 v-for="(item, index) in cell['Chord']"
                 :key="cell['Melody'].length + index"
                 :notasi="item" 
                 :type="type" 
                 :base="base" 
-                :transpose="transpose" />
+                :transpose="transpose"
+                :class="{'highlight': freqDict[item] && freqDict[item].highlight}" />
             </div>
             <div class="cell-lyrics">
               {{cell['Lyrics']}}
@@ -143,6 +148,7 @@ export default {
       numCol: 0,
       numChannel: 0,
       freq: [],
+      freqDict: {},
       fileList: [],
       table: [],
       currentBeatFraction: 0.0,
@@ -333,6 +339,7 @@ export default {
       this.numRow = obj.numRow
       this.numChannel = obj.numChannel
       this.freq = this.getFreq(obj)
+      this.freqDict = this.getFreqDict(this.freq)
       this.title = obj.title
       this.base = obj.base
       this.initBPM = obj.bpm
@@ -378,12 +385,22 @@ export default {
         sortedFreq.push({
           angklung: notasi2angklung(item, obj.base),
           notasi: item, 
-          freq: freq[item]
+          freq: freq[item],
+          highlight: false,
         })
       }
       sortedFreq.sort((a, b) => a.angklung - b.angklung)
       return sortedFreq
     },
+
+    getFreqDict(freq) {
+      const freqDict = {}
+      for (let i=0; i<freq.length; i++) {
+        const item = freq[i]
+        freqDict[item.notasi] = item
+      }
+      return freqDict
+    }
   }
 }
 </script>
@@ -492,6 +509,11 @@ export default {
   width: 1px;
   height: 100%;
   top: 0;
+}
+
+.partitur .highlight {
+  background: rgb(151, 230, 151);
+  transform: scale(1.5);
 }
 
 .freq-table {
