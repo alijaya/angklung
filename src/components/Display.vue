@@ -21,43 +21,46 @@
         <el-button type="primary" @click="frequencyVisible = false">Close</el-button>
       </div>
     </el-dialog>
-    <div>
-      <h1>{{title}}</h1>
-      <p>Base: {{baseTransposed}}</p>
-    </div>
-    <div class="partitur">
-      <div 
-        :style="activeCellStyle"
-        class="active-cell">
-        <div 
-          :style="playheadStyle"
-          class="playhead"></div>
+    <div ref="main" class="main">
+      <div>
+        <h1>{{title}}</h1>
+        <p>Base: {{baseTransposed}}</p>
       </div>
-      <div v-for="(row, i) in table" :key="i" class="row">
+      <div class="partitur"
+        @mousedown="playheadMouseMove"
+        @mousemove="playheadMouseMove">
         <div 
-          v-for="(cell, j) in row" 
-          :key="j"
-          @mousedown="playheadMouseMove($event, i * row.length + j)"
-          @mousemove="playheadMouseMove($event, i * row.length + j)"
-          class="cell">
-          <div class="cell-melody">
-            <Notasi 
-              v-for="(item, index) in cell['Melody']"
-              :key="index"
-              :notasi="item" 
-              :type="type" 
-              :base="base" 
-              :transpose="transpose" />
-            <Notasi 
-              v-for="(item, index) in cell['Chord']"
-              :key="cell['Melody'].length + index"
-              :notasi="item" 
-              :type="type" 
-              :base="base" 
-              :transpose="transpose" />
-          </div>
-          <div class="cell-lyrics">
-            {{cell['Lyrics']}}
+          v-show="currentBeatFraction < beatLength"
+          :style="activeCellStyle"
+          class="active-cell">
+          <div 
+            :style="playheadStyle"
+            class="playhead"></div>
+        </div>
+        <div v-for="(row, i) in table" :key="i" class="row">
+          <div 
+            v-for="(cell, j) in row" 
+            :key="j"
+            class="cell">
+            <div class="cell-melody">
+              <Notasi 
+                v-for="(item, index) in cell['Melody']"
+                :key="index"
+                :notasi="item" 
+                :type="type" 
+                :base="base" 
+                :transpose="transpose" />
+              <Notasi 
+                v-for="(item, index) in cell['Chord']"
+                :key="cell['Melody'].length + index"
+                :notasi="item" 
+                :type="type" 
+                :base="base" 
+                :transpose="transpose" />
+            </div>
+            <div class="cell-lyrics">
+              {{cell['Lyrics']}}
+            </div>
           </div>
         </div>
       </div>
@@ -84,7 +87,7 @@
           <el-input-number class="input" v-model="transpose" controls-position="right" @change="changeTranspose"/>
         </el-form-item>
         <el-form-item label="BPM">
-          <el-input-number class="input" v-model="bpm" :min="0" :controls="false" @change="changeBPM"/>
+          <el-input-number class="input" v-model="bpm" controls-position="right" @change="changeBPM"/>
         </el-form-item>
         <el-form-item label="Type">
           <el-select class="input" v-model="type" @change="changeType">
@@ -266,9 +269,9 @@ export default {
     },
     update() {
       if (this.to) {
-        this.currentBeatFraction = Math.max(0, Math.min(this.beatLength-0.0001, this.to.pos))
+        this.currentBeatFraction =this.to.pos
         if (this.isPlay) {
-          const el = document.documentElement
+          const el = this.$refs.main
           el.scrollTop = (el.scrollHeight - el.clientHeight) * this.finishPercentage
         }
       }
@@ -298,12 +301,14 @@ export default {
         bpm: this.initBPM,
       }, { merge: true })
     },
-    playheadMouseMove(ev, beat) {
+    playheadMouseMove(ev) {
       if (ev.buttons == 1) {
-        var x = ev.clientX - ev.currentTarget.offsetLeft
-        // var y = ev.clientY - ev.currentTarget.offsetTop
-        var fraction = x / ev.currentTarget.offsetWidth
-        this.changeVector({position: beat + fraction})
+        const bb = ev.currentTarget.getBoundingClientRect()
+        const x = ev.clientX - bb.left
+        const y = ev.clientY - bb.top
+        const row = Math.floor(this.numRow * y / bb.height) * this.numCol
+        const col = this.numCol * x / bb.width
+        this.changeVector({position: row + col})
       }
     },
     beforeUpload(file) {
@@ -386,11 +391,21 @@ export default {
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
 .display {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-flow: column nowrap;
+}
+
+.main {
   display: flex;
   flex-flow: column nowrap;
   box-sizing: border-box;
   align-items: center;
-  /* margin-bottom: 75vh; */
+  flex: 1 1 auto;
+  overflow: auto;
 }
 
 .partitur {
@@ -399,12 +414,15 @@ export default {
   flex-flow: column nowrap;
   box-sizing: border-box;
   user-select: none;
-  width: 100%;
+  flex: 0 0 auto;
+  min-width: 100%;
   font-size: 1.5em;
+  margin-bottom: 25vh;
 }
 
 .partitur .row {
   display: flex;
+  flex: 0 0 auto;
 }
 
 .partitur .cell {
@@ -465,6 +483,7 @@ export default {
   position: absolute;
   background-color: rgba(64, 160, 255, 0.2);
   z-index: 1;
+  pointer-events: none;
 }
 
 .partitur .playhead {
@@ -490,13 +509,10 @@ export default {
 }
 
 .information {
-  position: fixed;
   box-sizing: border-box;
-  z-index: 2;
   background: white;
-  left: 0;
-  bottom: 0;
   width: 100%;
+  z-index: 2;
   box-shadow: 0 -15px 30px 0 rgba(0,0,0,0.11),
               0 -5px 15px 0 rgba(0,0,0,0.08);
 }
