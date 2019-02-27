@@ -21,6 +21,47 @@
         <el-button type="primary" @click="frequencyVisible = false">Close</el-button>
       </div>
     </el-dialog>
+    <div>
+      <h1>{{title}}</h1>
+      <p>Base: {{baseTransposed}}</p>
+    </div>
+    <div class="partitur">
+      <div 
+        :style="activeCellStyle"
+        class="active-cell">
+        <div 
+          :style="playheadStyle"
+          class="playhead"></div>
+      </div>
+      <div v-for="(row, i) in table" :key="i" class="row">
+        <div 
+          v-for="(cell, j) in row" 
+          :key="j"
+          @mousedown="playheadMouseMove($event, i * row.length + j)"
+          @mousemove="playheadMouseMove($event, i * row.length + j)"
+          class="cell">
+          <div class="cell-melody">
+            <Notasi 
+              v-for="(item, index) in cell['Melody']"
+              :key="index"
+              :notasi="item" 
+              :type="type" 
+              :base="base" 
+              :transpose="transpose" />
+            <Notasi 
+              v-for="(item, index) in cell['Chord']"
+              :key="cell['Melody'].length + index"
+              :notasi="item" 
+              :type="type" 
+              :base="base" 
+              :transpose="transpose" />
+          </div>
+          <div class="cell-lyrics">
+            {{cell['Lyrics']}}
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="information">
       <el-progress :percentage="100*finishPercentage" :show-text="false" />
       <el-form class="controls" :inline="true">
@@ -64,45 +105,6 @@
         </el-form-item>
       </el-form>
     </div>
-    <div>
-      <h1>{{title}}</h1>
-      <p>Base: {{baseTransposed}}</p>
-    </div>
-    <div class="partitur">
-      <div v-for="(row, i) in table" :key="i" class="row">
-        <div 
-          v-for="(cell, j) in row" 
-          :key="j"
-          :class="{ current: i * row.length + j == currentBeat}"
-          @mousedown="playheadMouseMove($event, i * row.length + j)"
-          @mousemove="playheadMouseMove($event, i * row.length + j)"
-          class="cell">
-          <div class="cell-melody">
-            <Notasi 
-              v-for="(item, index) in cell['Melody']"
-              :key="index"
-              :notasi="item" 
-              :type="type" 
-              :base="base" 
-              :transpose="transpose" />
-            <Notasi 
-              v-for="(item, index) in cell['Chord']"
-              :key="cell['Melody'].length + index"
-              :notasi="item" 
-              :type="type" 
-              :base="base" 
-              :transpose="transpose" />
-          </div>
-          <div class="cell-lyrics">
-            {{cell['Lyrics']}}
-          </div>
-          <div 
-            v-if="i * row.length + j == currentBeat" 
-            :style="{ left: `${currentFraction*100}%`}"
-            class="playhead"></div>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -127,7 +129,6 @@ export default {
     return {
       typeOption: ['notasi', 'angklung', 'note'],
       type: 'angklung',
-      fps: 200,
       title: 'Untitled',
       base: 'C5',
       second: 0,
@@ -135,10 +136,12 @@ export default {
       initTranspose: 0,
       bpm: 60,
       initBPM: 60,
+      numRow: 0,
+      numCol: 0,
+      numChannel: 0,
       freq: [],
       fileList: [],
       table: [],
-      startBeatFraction: 0.0,
       currentBeatFraction: 0.0,
       isPlay: false,
       to: null,
@@ -150,6 +153,23 @@ export default {
     
   },
   computed: {
+    activeCellStyle() {
+      const currentCol = this.currentBeat % this.numCol
+      const currentRow = Math.floor(this.currentBeat / this.numCol)
+      const cellWidth = 100 / this.numCol
+      const cellHeight = 100 / this.numRow
+      return {
+        width: `${cellWidth}%`,
+        height: `${cellHeight}%`,
+        top: `${currentRow * cellHeight}%`,
+        left: `${currentCol * cellWidth}%`,
+      }
+    },
+    playheadStyle() {
+      return {
+        left: `${100 * this.currentFraction}%`,
+      }
+    },
     baseTransposed() {
       return noteTranspose(this.base, this.transpose)
     },
@@ -246,7 +266,7 @@ export default {
     },
     update() {
       if (this.to) {
-        this.currentBeatFraction = this.to.pos
+        this.currentBeatFraction = Math.max(0, Math.min(this.beatLength-0.0001, this.to.pos))
         if (this.isPlay) {
           const el = document.documentElement
           el.scrollTop = (el.scrollHeight - el.clientHeight) * this.finishPercentage
@@ -304,6 +324,9 @@ export default {
     },
     loadData(data){
       const obj = data2object(data)
+      this.numCol = obj.numCol
+      this.numRow = obj.numRow
+      this.numChannel = obj.numChannel
       this.freq = this.getFreq(obj)
       this.title = obj.title
       this.base = obj.base
@@ -314,24 +337,24 @@ export default {
         this.resetSettings()
       }
       this.table = []
-      for (let i=0; i<obj.channels['Melody'].length; i++) {
+      for (let i=0; i<this.numRow; i++) {
         this.table.push([])
-        for (let j=0; j<obj.channels['Melody'][i].length; j++) {
+        for (let j=0; j<this.numCol; j++) {
           const cell = {}
-          for (let k=0; k<obj.channelNames.length; k++) {
+          for (let k=0; k<this.numChannel; k++) {
             const channelName = obj.channelNames[k]
             cell[channelName] = obj.channels[channelName][i][j]
           }
           this.table[i].push(cell)
         }
       }
-      this.beatLength = obj.numCol * obj.numRow
+      this.beatLength = this.numCol * this.numRow
     },
     getFreq(obj) {
       const freq = {}
-      for (let i=0; i<obj.channels['Melody'].length; i++) {
-        for (let j=0; j<obj.channels['Melody'][i].length; j++) {
-          for (let k=0; k<obj.channelNames.length; k++) {
+      for (let i=0; i<this.numRow; i++) {
+        for (let j=0; j<this.numCol; j++) {
+          for (let k=0; k<this.numChannel; k++) {
             const channelName = obj.channelNames[k]
             const data = obj.channels[channelName][i][j]
             if (channelName == 'Melody' || channelName == 'Chord') {
@@ -367,10 +390,11 @@ export default {
   flex-flow: column nowrap;
   box-sizing: border-box;
   align-items: center;
-  margin-bottom: 75vh;
+  /* margin-bottom: 75vh; */
 }
 
 .partitur {
+  position: relative;
   display: flex;
   flex-flow: column nowrap;
   box-sizing: border-box;
@@ -432,20 +456,22 @@ export default {
   white-space: nowrap;
 }
 
-.partitur .cell.current {
-  background-color: rgb(196, 225, 255);
-}
-
 .partitur .notasi {
   margin-left: 0.2em;
   margin-right: 0.2em;
 }
 
+.partitur .active-cell {
+  position: absolute;
+  background-color: rgba(64, 160, 255, 0.2);
+  z-index: 1;
+}
+
 .partitur .playhead {
   position: absolute;
+  background-color: rgb(64, 160, 255);
   width: 1px;
   height: 100%;
-  background-color: #409EFF;
   top: 0;
 }
 
