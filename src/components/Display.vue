@@ -29,17 +29,11 @@
         <h1>{{title}}</h1>
         <p>Base: {{baseTransposed}}</p>
       </div>
-      <div class="partitur"
+      <div 
+        ref="partitur"
+        class="partitur"
         @mousedown="playheadMouseMove"
         @mousemove="playheadMouseMove">
-        <div 
-          v-show="currentBeatFraction < beatLength"
-          :style="activeCellStyle"
-          class="active-cell">
-          <div 
-            :style="playheadStyle"
-            class="playhead"></div>
-        </div>
         <div v-for="(row, i) in table" :key="i" class="row">
           <div 
             v-for="(cell, j) in row" 
@@ -68,10 +62,21 @@
             </div>
           </div>
         </div>
+
+        <div 
+          ref="activeCell"
+          class="active-cell">
+        </div>
+        <div 
+          ref="playhead"
+          class="playhead">
+        </div>
       </div>
     </div>
     <div class="information">
-      <el-progress :percentage="100*finishPercentage" :show-text="false" />
+      <div ref="progress" class="progress">
+        <div ref="progressBar" class="progress-bar"></div>
+      </div>
       <el-form class="controls" :inline="true">
         <el-form-item>
           <el-upload
@@ -151,7 +156,6 @@ export default {
       freqDict: {},
       fileList: [],
       table: [],
-      currentBeatFraction: 0.0,
       isPlay: false,
       to: null,
       beatLength: 0,
@@ -162,36 +166,8 @@ export default {
     
   },
   computed: {
-    activeCellStyle() {
-      const currentCol = this.currentBeat % this.numCol
-      const currentRow = Math.floor(this.currentBeat / this.numCol)
-      const cellWidth = 100 / this.numCol
-      const cellHeight = 100 / this.numRow
-      return {
-        width: `${cellWidth}%`,
-        height: `${cellHeight}%`,
-        top: `${currentRow * cellHeight}%`,
-        left: `${currentCol * cellWidth}%`,
-      }
-    },
-    playheadStyle() {
-      return {
-        left: `${100 * this.currentFraction}%`,
-      }
-    },
     baseTransposed() {
       return noteTranspose(this.base, this.transpose)
-    },
-    currentBeat() {
-      return Math.floor(this.currentBeatFraction)
-    },
-    currentFraction() {
-      return this.currentBeatFraction - this.currentBeat
-    },
-    finishPercentage() {
-      const finish = this.currentBeatFraction / this.beatLength
-      if (isNaN(finish)) return 0
-      return (finish < 0)? 0 : (finish > 1)? 1 : finish
     },
     halfbps() {
       return this.bpm / 60 * 2
@@ -200,7 +176,7 @@ export default {
   watch: {
     bpm() {
       if (this.isPlay) this.play()
-    }
+    },
   },
   created() {
     this.changeVector = _.throttle((vector) => {
@@ -214,7 +190,7 @@ export default {
     .then(() => {
       /*global TIMINGSRC*/
       /*global MCorp*/
-      const app = MCorp.app(MCORP_APPID)
+      const app = MCorp.app(MCORP_APPID, {anon: true})
       app.run = () => {
         const timingProvider = app.motions[MCORP_MOTION_NAME]
         this.to = new TIMINGSRC.TimingObject({provider: timingProvider})
@@ -274,11 +250,46 @@ export default {
       this.changeVector({velocity: 0, acceleration: 0})
     },
     update() {
+      // if (this._lastStamp) {
+      //   console.log(1000 / (stamp - this._lastStamp))
+      // }
+      // this._lastStamp = stamp;
       if (this.to) {
-        this.currentBeatFraction =this.to.pos
+        const currentBeatFraction = this.to.pos
+
+        const currentBeat = Math.floor(currentBeatFraction)
+        const currentFraction = currentBeatFraction - currentBeat
+        
+        const finish = currentBeatFraction / this.beatLength
+        const finishPercentage = isNaN(finish)? 0 : finish < 0? 0 : finish > 1? 1 : finish
+        
+        const hide = isNaN(finish) || finish < 0 || finish >= 1
+
+        const partitur = this.$refs.partitur
+        const activeCell = this.$refs.activeCell
+        const playhead = this.$refs.playhead
+        const progressBar = this.$refs.progressBar
+
+        const currentCol = currentBeat % this.numCol
+        const currentRow = Math.floor(currentBeat / this.numCol)
+        const cellWidth = partitur.offsetWidth / this.numCol
+        const cellHeight = partitur.offsetHeight / this.numRow
+
+        activeCell.style.display = hide? 'none' : 'block'
+        activeCell.style.width = `${cellWidth}px`
+        activeCell.style.height = `${cellHeight}px`
+        activeCell.style.transform = `translate(${currentCol * cellWidth}px, ${currentRow * cellHeight}px)`
+        
+        const offset = currentCol + currentFraction
+        playhead.style.display = hide? 'none' : 'block'
+        playhead.style.height = `${cellHeight}px`
+        playhead.style.transform = `translate(${offset * cellWidth}px, ${currentRow * cellHeight}px)`
+      
+        progressBar.style.width = `${100 * finishPercentage}%`
+
         if (this.isPlay) {
           const el = this.$refs.main
-          el.scrollTop = (el.scrollHeight - el.clientHeight) * this.finishPercentage
+          el.scrollTop = (el.scrollHeight - el.clientHeight) * finishPercentage
         }
       }
       this.timer = requestAnimationFrame(this.update)
@@ -422,7 +433,8 @@ export default {
   box-sizing: border-box;
   align-items: center;
   flex: 1 1 auto;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .partitur {
@@ -433,7 +445,6 @@ export default {
   user-select: none;
   flex: 0 0 auto;
   min-width: 100%;
-  font-size: 1.5em;
   margin-bottom: 25vh;
 }
 
@@ -460,7 +471,7 @@ export default {
 }
 
 .partitur .row:first-of-type .cell {
-  border-top: 1px #c8c8c8 solid;
+  border-top: 1px rgb(200, 200, 200) solid;
 }
 
 .partitur .cell:nth-of-type(4n - 3),
@@ -480,7 +491,8 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 3em;
+  height: 4em;
+  flex-flow: row wrap;
 }
 
 .partitur .cell-lyrics {
@@ -500,6 +512,8 @@ export default {
   position: absolute;
   background-color: rgba(64, 160, 255, 0.2);
   z-index: 1;
+  top: 0;
+  left: 0;
   pointer-events: none;
 }
 
@@ -507,8 +521,10 @@ export default {
   position: absolute;
   background-color: rgb(64, 160, 255);
   width: 1px;
-  height: 100%;
+  z-index: 1;
   top: 0;
+  left: 0;
+  pointer-events: none;
 }
 
 .partitur .highlight {
@@ -545,6 +561,18 @@ export default {
 
 .input {
   width: 7em;
+}
+
+.progress {
+  width: 100%;
+  height: 4px;
+  background: rgb(200, 200, 200);
+}
+
+.progress-bar {
+  height: 100%;
+  width: 0%;
+  background: rgb(64, 160, 255);
 }
 
 .el-form--inline .el-form-item {
