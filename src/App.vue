@@ -1,19 +1,8 @@
 <template>
   <div id="app">
-    <Display />
+    <router-view/>
   </div>
 </template>
-
-<script>
-import Display from './components/Display.vue'
-
-export default {
-  name: 'app',
-  components: {
-    Display
-  },
-}
-</script>
 
 <style>
 html, body, #app {
