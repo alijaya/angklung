@@ -159,6 +159,7 @@ export default {
       table: [],
       isPlay: false,
       to: null,
+      toBPM: null,
       beatLength: 0,
       frequencyVisible: false,
     }
@@ -172,7 +173,10 @@ export default {
     },
     halfbps() {
       return this.bpm / 60 * 2
-    }
+    },
+    halfInitBPS() {
+      return this.initBPM / 60 * 2
+    },
   },
   watch: {
     bpm() {
@@ -194,7 +198,7 @@ export default {
     }
 
     this.changeVector = _.throttle((vector) => {
-      if (this.to) this.to.update(vector)
+      if (this.toBPM) this.toBPM.update(vector)
     }, 300)
 
     Promise.all([
@@ -208,6 +212,7 @@ export default {
       app.run = () => {
         const timingProvider = app.motions[MCORP_MOTION_NAME]
         this.to = new TIMINGSRC.TimingObject({provider: timingProvider})
+        this.createTOBPM()
         this.to.on('change', () => {
           this.isPlay = this.to.vel != 0
         })
@@ -271,8 +276,8 @@ export default {
       //   console.log(1000 / (stamp - this._lastStamp))
       // }
       // this._lastStamp = stamp;
-      if (this.to) {
-        const currentBeatFraction = this.to.pos
+      if (this.toBPM) {
+        const currentBeatFraction = this.toBPM.pos
 
         const currentBeat = Math.floor(currentBeatFraction)
         const currentFraction = currentBeatFraction - currentBeat
@@ -361,6 +366,9 @@ export default {
         data: data,
       }, { merge: true })
     },
+    createTOBPM() {
+      this.toBPM = new TIMINGSRC.ScaleConverter(this.to, this.halfInitBPS)
+    },
     loadData(data){
       const obj = data2object(data)
       this.numCol = obj.numCol
@@ -372,6 +380,7 @@ export default {
       this.base = obj.base
       this.initBPM = obj.bpm
       this.initTranspose = obj.transpose
+      this.createTOBPM()
       if (this.isResetSettings) {
         this.isResetSettings = false
         this.resetSettings()
