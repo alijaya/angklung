@@ -16,7 +16,7 @@
           </td>
           <td>{{item.freq}}</td>
           <td>
-            <el-switch v-model="item.highlight" />
+            <el-switch v-model="highlight[getAngklung(item.notasi)]" />
           </td>
         </tr>
       </table>
@@ -47,7 +47,7 @@
                 :type="type" 
                 :base="base" 
                 :transpose="transpose"
-                :class="{'highlight': freqDict[item] && freqDict[item].highlight}" />
+                :class="{'highlight': highlight[getAngklung(item)]}" />
               <Notasi 
                 v-for="(item, index) in cell['Chord']"
                 :key="cell['Melody'].length + index"
@@ -55,7 +55,7 @@
                 :type="type" 
                 :base="base" 
                 :transpose="transpose"
-                :class="{'highlight': freqDict[item] && freqDict[item].highlight}" />
+                :class="{'highlight': highlight[getAngklung(item)]}" />
             </div>
             <div class="cell-lyrics">
               {{cell['Lyrics']}}
@@ -123,7 +123,7 @@
 
 <script>
 import Notasi from './Notasi'
-import {noteTranspose, notasi2angklung} from '@/js/Note'
+import {angklungTranspose, noteTranspose, notasi2angklung} from '@/js/Note'
 import data2object from '@/js/data2object'
 import _ from 'lodash'
 
@@ -153,6 +153,7 @@ export default {
       numCol: 0,
       numChannel: 0,
       freq: [],
+      highlight: [],
       freqDict: {},
       fileList: [],
       table: [],
@@ -177,8 +178,21 @@ export default {
     bpm() {
       if (this.isPlay) this.play()
     },
+    highlight() {
+      localStorage.setItem('highlight', JSON.stringify(this.highlight))
+    }
   },
   created() {
+    // persistent highlight
+    // https://vuejs.org/v2/cookbook/client-side-storage.html
+    if (localStorage.getItem('highlight')) {
+      try {
+        this.highlight = JSON.parse(localStorage.getItem('highlight'))
+      } catch(e) {
+        localStorage.removeItem('highlight')
+      }
+    }
+
     this.changeVector = _.throttle((vector) => {
       if (this.to) this.to.update(vector)
     }, 300)
@@ -234,6 +248,9 @@ export default {
     .onSnapshot((doc) => {
       this.loadData(doc.data().data)
     })
+  },
+  destroyed() {
+    cancelAnimationFrame(this.timer)
   },
   methods: {
     toggle() {
@@ -408,10 +425,14 @@ export default {
       const freqDict = {}
       for (let i=0; i<freq.length; i++) {
         const item = freq[i]
-        freqDict[item.notasi] = item
+        freqDict[item.angklung] = item
       }
       return freqDict
-    }
+    },
+
+    getAngklung(notasi) {
+      return angklungTranspose(notasi2angklung(notasi, this.base), this.transpose)
+    },
   }
 }
 </script>
