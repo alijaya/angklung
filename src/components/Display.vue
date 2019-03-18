@@ -77,7 +77,7 @@
       <div ref="progress" class="progress">
         <div ref="progressBar" class="progress-bar"></div>
       </div>
-      <el-form class="controls" :inline="true">
+      <el-form class="controls" :inline="true" v-if="controls">
         <el-form-item>
           <el-upload
             action="#"
@@ -138,6 +138,12 @@ export default {
   components: {
     Notasi,
   },
+  props: {
+    controls: {
+      type: Boolean,
+      default: false,
+    }
+  },
   data() {
     return {
       typeOption: ['notasi', 'angklung', 'note'],
@@ -163,9 +169,6 @@ export default {
       beatLength: 0,
       frequencyVisible: false,
     }
-  },
-  props: {
-    
   },
   computed: {
     baseTransposed() {
@@ -227,15 +230,18 @@ export default {
         e.preventDefault()
       }
     })
-    window.addEventListener('keyup', e => {
-      if (e.key == ' ') {
-        this.toggle()
-      }
-      if (e.key == 'Escape') {
-        this.reset()
-      }
-      e.preventDefault()
-    })
+
+    if (this.controls) {
+      window.addEventListener('keyup', e => {
+        if (e.key == ' ') {
+          this.toggle()
+        }
+        if (e.key == 'Escape') {
+          this.reset()
+        }
+        e.preventDefault()
+      })
+    }
 
     this.$db.collection('global').doc('settings')
     .onSnapshot((doc) => {
@@ -337,7 +343,7 @@ export default {
       }, { merge: true })
     },
     playheadMouseMove(ev) {
-      if (ev.buttons == 1) {
+      if (this.controls && ev.buttons == 1) {
         const bb = ev.currentTarget.getBoundingClientRect()
         const x = ev.clientX - bb.left
         const y = ev.clientY - bb.top

@@ -1,6 +1,7 @@
 import Vue from 'vue'
 import Router from 'vue-router'
-import Display from './views/Display.vue'
+import Home from './views/Home.vue'
+import Control from './views/Control.vue'
 import Music from './views/Music.vue'
 
 Vue.use(Router)
@@ -12,7 +13,12 @@ export default new Router({
     {
       path: '/',
       name: 'home',
-      component: Display
+      component: Home
+    },
+    {
+      path: '/control',
+      name: 'control',
+      component: Control
     },
     {
       path: '/music',
