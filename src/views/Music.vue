@@ -1,7 +1,7 @@
 <template>
   <div class="music">
     <div ref="main" class="main">
-      <audio ref="audio" class="audio" :src="require('@/assets/Romantic Tropical Beach.mp3')" />
+      <audio ref="audio" class="audio" controls />
     </div>
     <div class="information">
       <div ref="progress" class="progress">
@@ -89,15 +89,15 @@ export default {
         e.preventDefault()
       }
     })
-    window.addEventListener('keyup', e => {
-      if (e.key == ' ') {
-        this.toggle()
-      }
-      if (e.key == 'Escape') {
-        this.reset()
-      }
-      e.preventDefault()
-    })
+    // window.addEventListener('keyup', e => {
+    //   if (e.key == ' ') {
+    //     this.toggle()
+    //   }
+    //   if (e.key == 'Escape') {
+    //     this.reset()
+    //   }
+    //   e.preventDefault()
+    // })
 
 
     this.$db.collection('global').doc('settings')
@@ -126,10 +126,9 @@ export default {
     beforeUpload(file) {
       // to deselect
       document.activeElement.blur()
-      // const reader = new FileReader()
 
-      // reader.onload = this.onLoad.bind(this)
-      // reader.readAsBinaryString(file)
+      const fileURL = URL.createObjectURL(file)
+      this.$refs.audio.src = fileURL
       return false
     },
     changeSkew(skew) {
