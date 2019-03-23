@@ -77,45 +77,49 @@
       <div ref="progress" class="progress">
         <div ref="progressBar" class="progress-bar"></div>
       </div>
-      <el-form class="controls" :inline="true" v-if="controls">
-        <el-form-item>
-          <el-upload
-            action="#"
-            :before-upload="beforeUpload">
-            <el-button icon="el-icon-upload">Open</el-button>
-          </el-upload>
-        </el-form-item>
+      <el-form class="controls" :inline="true">
         <el-form-item>
           <el-tooltip content="See Frequency Table" placement="top">
             <el-button type="text" @click="frequencyVisible = true">Frequency</el-button>
           </el-tooltip>
-          <el-tooltip content="Reset BPM and Transpose" placement="top">
-            <el-button icon="el-icon-refresh" circle @click="resetSettings"></el-button>
-          </el-tooltip>
         </el-form-item>
-        <el-form-item label="Transpose">
-          <el-input-number class="input" v-model="transpose" controls-position="right" @change="changeTranspose"/>
-        </el-form-item>
-        <el-form-item label="BPM">
-          <el-input-number class="input" v-model="bpm" controls-position="right" @change="changeBPM"/>
-        </el-form-item>
-        <el-form-item label="Type">
-          <el-select class="input" v-model="type" @change="changeType">
-            <el-option
-              v-for="(item, index) in typeOption"
-              :key="index"
-              :value="item">
-            </el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-tooltip content="Shortcut: Space" placement="top">
-            <el-button :type="isPlay? 'danger' : 'primary'" @click="toggle">{{isPlay? 'Pause' : 'Play'}}</el-button>
-          </el-tooltip>
-          <el-tooltip content="Shortcut: Esc" placement="top">
-            <el-button @click="reset">Reset</el-button>
-          </el-tooltip>
-        </el-form-item>
+        <template v-if="controls">
+          <el-form-item>
+            <el-upload
+              action="#"
+              :before-upload="beforeUpload">
+              <el-button icon="el-icon-upload">Open</el-button>
+            </el-upload>
+          </el-form-item>
+          <el-form-item>
+            <el-tooltip content="Reset BPM and Transpose" placement="top">
+              <el-button icon="el-icon-refresh" circle @click="resetSettings"></el-button>
+            </el-tooltip>
+          </el-form-item>
+          <el-form-item label="Transpose">
+            <el-input-number class="input" v-model="transpose" controls-position="right" @change="changeTranspose"/>
+          </el-form-item>
+          <el-form-item label="BPM">
+            <el-input-number class="input" v-model="bpm" controls-position="right" @change="changeBPM"/>
+          </el-form-item>
+          <el-form-item label="Type">
+            <el-select class="input" v-model="type" @change="changeType">
+              <el-option
+                v-for="(item, index) in typeOption"
+                :key="index"
+                :value="item">
+              </el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item>
+            <el-tooltip content="Shortcut: Space" placement="top">
+              <el-button :type="isPlay? 'danger' : 'primary'" @click="toggle">{{isPlay? 'Pause' : 'Play'}}</el-button>
+            </el-tooltip>
+            <el-tooltip content="Shortcut: Esc" placement="top">
+              <el-button @click="reset">Reset</el-button>
+            </el-tooltip>
+          </el-form-item>
+        </template>
       </el-form>
     </div>
   </div>
