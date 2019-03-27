@@ -1,7 +1,7 @@
 <template>
   <div class="music">
     <div ref="main" class="main">
-      <audio ref="audio" class="audio" controls />
+      <audio ref="audio" class="audio" controls @volumechange="onAudioVolumeChange" />
     </div>
     <div class="information">
       <div ref="progress" class="progress">
@@ -22,6 +22,9 @@
         </el-form-item>
         <el-form-item label="Skew">
           <el-input-number class="input" controls-position="right" :precision="2" :step="0.1" v-model="skew" @change="changeSkew"/>
+        </el-form-item>
+        <el-form-item label="Muted">
+          <el-switch v-model="muted"/>
         </el-form-item>
       </el-form>
     </div>
@@ -47,11 +50,19 @@ export default {
       sync: null,
       timer: null,
       skew: 0.0,
+      muted: false,
     }
   },
   watch: {
     skew() {
       if (this.sync) this.sync.setSkew(this.skew)
+    },
+    muted() {
+      this.$refs.audio.muted = this.muted
+
+      this.$db.collection('global').doc('settings').set({
+        muted: this.muted,
+      }, { merge: true })
     }
   },
   created() {
@@ -104,6 +115,7 @@ export default {
     .onSnapshot((doc) => {
       const data = doc.data()
       this.skew = data.skew
+      this.muted = data.muted
     })
   },
   destroyed() {
@@ -135,6 +147,10 @@ export default {
       this.$db.collection('global').doc('settings').set({
         skew: skew,
       }, { merge: true })
+    },
+
+    onAudioVolumeChange() {
+      this.muted = this.$refs.audio.muted
     },
 
     resetSettings() {

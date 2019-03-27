@@ -111,6 +111,9 @@
               </el-option>
             </el-select>
           </el-form-item>
+          <el-form-item label="Muted">
+            <el-switch v-model="muted"/>
+          </el-form-item>
           <el-form-item>
             <el-tooltip content="Shortcut: Space" placement="top">
               <el-button :type="isPlay? 'danger' : 'primary'" @click="toggle">{{isPlay? 'Pause' : 'Play'}}</el-button>
@@ -172,6 +175,7 @@ export default {
       toBPM: null,
       beatLength: 0,
       frequencyVisible: false,
+      muted: false,
     }
   },
   computed: {
@@ -191,7 +195,13 @@ export default {
     },
     highlight() {
       localStorage.setItem('highlight', JSON.stringify(this.highlight))
-    }
+    },
+    muted() {
+      this.$db.collection('global').doc('settings').set({
+        muted: this.muted,
+      }, { merge: true })
+    },
+
   },
   created() {
     // persistent highlight
@@ -253,6 +263,7 @@ export default {
       this.bpm = data.bpm
       this.transpose = data.transpose
       this.type = data.type
+      this.muted = data.muted
     })
 
     this.$db.collection('global').doc('global')
@@ -340,6 +351,7 @@ export default {
         type: type,
       }, { merge: true })
     },
+
     resetSettings() {
       this.$db.collection('global').doc('settings').set({
         transpose: this.initTranspose,
